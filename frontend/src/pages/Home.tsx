@@ -1,17 +1,30 @@
 /**
- * CodeGuard AI - Home Page
+ * CodeGuard AI - Main Application Dashboard.
+ *
+ * This component serves as the primary workspace for the application.
+ * It manages the code editor state, handles the asynchronous API communication
+ * with the FastAPI backend, and renders the dynamic audit results.
  */
 
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Shield, Zap, ChevronRight } from "lucide-react";
+
+// Internal Component Imports
 import { Button } from "@/components/ui/button";
 import AuditResults from "@/components/AuditResults";
 import CodeEditor from "@/components/CodeEditor";
 import CompactFeatureShowcase from "@/components/CompactFeatureShowcase";
 
+// ============================================================================
+// Type Definitions
+// ============================================================================
+
 export type Severity = "critical" | "high" | "medium" | "low";
 
+/**
+ * Represents a single security vulnerability or finding returned by the AI.
+ */
 export interface AuditFinding {
   id: string;
   title: string;
@@ -23,14 +36,25 @@ export interface AuditFinding {
   solutionCode?: string;
 }
 
+// ============================================================================
+// Main Component
+// ============================================================================
+
 export default function Home() {
+  // --- State Management ---
   const [code, setCode] = useState("");
   const [findings, setFindings] = useState<AuditFinding[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
+  
+  // --- DOM References ---
   const resultsRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
 
+  /**
+   * Submits the current code to the backend for security analysis.
+   * Handles loading states, API communication, data mapping, and error fallbacks.
+   */
   const handleAnalyze = async () => {
     if (!code.trim()) return;
 
@@ -38,7 +62,7 @@ export default function Home() {
     setHasAnalyzed(true);
 
     try {
-      // Simulamos llamada a API (FastAPI)
+      // Execute API call to the FastAPI backend
       const response = await fetch("http://localhost:8000/api/audit", {
         method: "POST",
         headers: {
@@ -48,11 +72,12 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        throw new Error("Error conectando con el motor de IA (FastAPI)");
+        throw new Error("Failed to connect to the AI Engine (FastAPI).");
       }
 
       const data = await response.json();
 
+      // Normalize the risk level to conform with the frontend Severity type
       const severityMap: Record<string, Severity> = {
         Critical: "critical",
         High: "high",
@@ -64,46 +89,51 @@ export default function Home() {
       const riskLevel = data.risk_level || "Medium";
       const mappedSeverity = severityMap[riskLevel] || "medium";
 
-      // Mapeamos respuesta real de FastAPI a estructura del front
+      // Map the backend JSON response to the frontend TypeScript interface
       const newFinding: AuditFinding = {
         id: "genai-result-1",
-        title: data.vulnerability || "Vulnerabilidad detectada",
-        description: data.details || "Detalles no disponibles.",
+        title: data.vulnerability || "Vulnerability detected",
+        description: data.details || "Details unavailable.",
         severity: mappedSeverity,
-        category: "Análisis IA",
-        recommendation: data.explanation || "Revisa el código para corregir la vulnerabilidad.",
-        solutionCode: data.solution_code || "// Gemini no proporcionó código de solución.",
+        category: "AI Analysis",
+        recommendation: data.explanation || "Review the code to patch the vulnerability.",
+        solutionCode: data.solution_code || "// Gemini did not provide a solution code.",
       };
 
       setFindings([newFinding]);
 
     } catch (error) {
-      console.error("Error en la auditoría:", error);
-      // Fallback para pruebas si FastAPI no está corriendo
+      console.error("Audit processing error:", error);
+      
+      // Fallback finding generation if the backend is unreachable
       setFindings([{
         id: "error",
-        title: "Error de Conexión",
-        description: "No se pudo contactar con el servidor FastAPI en el puerto 8000.",
+        title: "Connection Error",
+        description: "Could not reach the FastAPI server on port 8000.",
         severity: "critical",
         category: "System",
-        recommendation: "Asegúrate de que uvicorn main:app --reload está corriendo en otra terminal.",
+        recommendation: "Ensure `uvicorn main:app --reload` is running in another terminal.",
       }]);
     } finally {
       setIsAnalyzing(false);
       
-      // Scroll suave a resultados
+      // Execute smooth scroll to the results container after a brief delay
       setTimeout(() => {
         resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 500);
     }
   };
 
+  /**
+   * Resets the workspace to its initial empty state.
+   */
   const handleClear = () => {
     setCode("");
     setFindings([]);
     setHasAnalyzed(false);
   };
 
+  // Compute aggregated statistics for the current findings
   const stats = {
     total: findings.length,
     critical: findings.filter((f) => f.severity === "critical").length,
@@ -114,7 +144,10 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
-      {/* Navigation */}
+      
+      {/* =====================================================================
+          Global Navigation
+          ===================================================================== */}
       <nav className="border-b border-border/30 backdrop-blur-sm sticky top-0 z-50">
         <div className="container py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -127,7 +160,9 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Hero Section */}
+      {/* =====================================================================
+          Hero Section
+          ===================================================================== */}
       <section className="container py-20 md:py-32 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -192,14 +227,18 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* Feature Showcase Section */}
+      {/* =====================================================================
+          Feature Showcase Section
+          ===================================================================== */}
       <section className="container py-12 md:py-16 flex justify-center">
         <div className="max-w-2xl w-full">
           <CompactFeatureShowcase />
         </div>
       </section>
 
-      {/* Workspace Section */}
+      {/* =====================================================================
+          Main Workspace Section (Editor & Results)
+          ===================================================================== */}
       <section ref={editorRef} className="container py-20 md:py-32 space-y-12">
         <div className="text-center space-y-4 mb-16 shrink-0">
           <h2 className="text-4xl md:text-5xl font-bold">Code Guard</h2>
@@ -208,20 +247,29 @@ export default function Home() {
           </p>
         </div>
 
-        {/* 🛠️ GRID PRINCIPAL CORREGIDO (Altura fija en LG) 🛠️ */}
+        {/* MAIN WORKSPACE GRID: Fixed height on large screens for layout consistency */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start lg:h-[750px]">
           
-          {/* COLUMNA IZQUIERDA: Editor (ESTRUCTURA RAÍZ) */}
+          {/* --- LEFT COLUMN: Code Input & Controls --- */}
           <div className="space-y-8 flex flex-col h-full">
-            {/* 1. Título Fijo */}
+            
+            {/* 1. Fixed Header */}
             <h3 className="lg:text-left text-center text-xl font-semibold px-2 mb-2 shrink-0">Code Input</h3>
             
-            {/* 2. Contenido expandible (Editor) */}
+            {/* 2. Expandable Editor Area */}
             <div className="flex-1 min-h-[400px]">
               <CodeEditor code={code} onChange={setCode} />
             </div>
 
-            {/* 3. Botones fijos abajo */}
+            {/* GDPR / PII Security Notice */}
+            <div className="flex gap-2 items-start bg-accent/5 border border-accent/20 rounded-lg p-3 shrink-0">
+              <Shield className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+              <p className="text-[12px] text-muted-foreground leading-relaxed">
+                <strong>Security Notice:</strong> Do not paste real API keys, passwords, or Personally Identifiable Information (PII). Code is processed via secure third-party AI endpoints to ensure compliance.
+              </p>
+            </div>
+
+            {/* 3. Fixed Action Buttons */}
             <div className="flex gap-4 max-w-xl mx-auto lg:mx-0 w-full shrink-0">
               <Button
                 onClick={handleAnalyze}
@@ -248,16 +296,18 @@ export default function Home() {
             </div>
           </div>
 
-          {/* COLUMNA DERECHA: Resultados (ESTRUCTURA ESPEJO CORREGIDA) */}
+          {/* --- RIGHT COLUMN: Audit Results Container --- */}
           <div className="space-y-8 flex flex-col h-full relative border-t border-border/30 lg:border-none pt-16 lg:pt-0 lg:h-[670px]">
-            {/* 1. Título Fijo (IGUAL QUE A LA IZQUIERDA) */}
+            
+            {/* 1. Fixed Header (Mirrors Left Column) */}
             <h3 className="lg:text-left text-center text-xl font-semibold px-2 mb-2 shrink-0">Audit Results</h3>
 
-            {/* 2. Contenido expandible con SCROLL INTERNO */}
+            {/* 2. Scrollable Results Area */}
             <div className="flex-1 min-h-[400px] lg:min-h-0 relative">
                 <AnimatePresence mode="wait">
                     {!hasAnalyzed ? (
-                        // Estado Inicial (Caja discontinua) - Alineada con el Editor
+                        
+                        // Empty State: Dashed placeholder box aligned with the editor
                         <motion.div
                             key="empty"
                             initial={{ opacity: 0 }}
@@ -271,7 +321,8 @@ export default function Home() {
                             </p>
                         </motion.div>
                     ) : (
-                        // Estado con Resultados (Con Scroll Interno por debajo del título)
+                        
+                        // Populated State: Renders results with internal vertical scrolling
                         <motion.div
                             key="results"
                             ref={resultsRef}
@@ -281,15 +332,16 @@ export default function Home() {
                             transition={{ duration: 0.4 }}
                             className="h-full flex flex-col lg:absolute lg:inset-0"
                         >
-                            {/* Este div interno es el único que hace scroll */}
+                            {/* Inner scrollable container */}
                             <div className="flex-1 overflow-y-auto custom-scrollbar pr-4 space-y-6">
-                                {/* Subtítulo y Tags (estos sí hacen scroll) */}
+                                
+                                {/* Dynamic Subtitle and Stat Tags */}
                                 <div className="border-b border-border/30 pb-6 pt-2 space-y-6">
                                     <p className="text-muted-foreground text-sm lg:text-left text-center">
                                       {isAnalyzing 
-                                        ? "✨ AI is reading your code..." 
+                                        ? "Analyzing your code..." 
                                         : findings.length === 0
-                                          ? "✓ No security issues detected"
+                                          ? "No security issues detected"
                                           : `Analysis complete: ${findings.length} issue${findings.length === 1 ? "" : "s"} detected`}
                                     </p>
 
@@ -313,7 +365,7 @@ export default function Home() {
                                     )}
                                 </div>
 
-                                {/* Componente de tarjetas de resultados */}
+                                {/* Render the list of audit findings */}
                                 <AuditResults findings={findings} isLoading={isAnalyzing} />
                             </div>
                         </motion.div>
@@ -324,7 +376,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* What's New? Section */}
+      {/* =====================================================================
+          What's New Section
+          ===================================================================== */}
       <section className="container py-20 md:py-32 space-y-12 shrink-0">
         <div className="space-y-4">
           <h2 className="text-4xl md:text-5xl font-bold">What's New?</h2>
@@ -347,7 +401,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
+      {/* =====================================================================
+          Footer
+          ===================================================================== */}
       <footer className="border-t border-border/30 py-12 mt-20 shrink-0">
         <div className="container flex flex-col md:flex-row justify-between items-center gap-8 text-sm text-muted-foreground">
           <div>© 2026 CodeGuard AI. All rights reserved.</div>

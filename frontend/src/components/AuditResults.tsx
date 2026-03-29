@@ -1,22 +1,59 @@
 /**
- * Audit Results Component - IDE MOCKUP & SAFE MARKDOWN
+ * CodeGuard AI - Audit Results Component.
+ *
+ * This module renders the visual representation of security audit findings.
+ * It handles empty states, animated card entrances, and displays both the
+ * markdown-formatted analysis and the raw remediated code within a mock 
+ * IDE environment.
  */
 
-// 1. IMPORTANTE: He añadido 'Zap' aquí para que no explote
-import { AlertCircle, Shield, Zap, FileCode } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { AlertCircle, Shield, Zap, FileCode } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+
+// Internal application imports
 import { getSeverityColor, getSeverityLabel } from "@/lib/auditEngine";
 import type { AuditFinding } from "@/pages/Home";
 
+// ============================================================================
+// Type Definitions
+// ============================================================================
+
+/**
+ * Properties for the main AuditResults container component.
+ *
+ * @interface AuditResultsProps
+ * @property {AuditFinding[]} findings - The array of security findings to display.
+ * @property {boolean} [isLoading] - Indicates if an analysis is currently in progress.
+ */
 interface AuditResultsProps {
   findings: AuditFinding[];
   isLoading?: boolean;
 }
 
+/**
+ * Properties for the individual FindingCard component.
+ *
+ * @interface FindingCardProps
+ * @property {AuditFinding} finding - The specific security finding data to render.
+ * @property {boolean} isLoading - Indicates if the system is synthesizing a response.
+ */
+interface FindingCardProps {
+  finding: AuditFinding;
+  isLoading: boolean;
+}
+
+// ============================================================================
+// Main Component
+// ============================================================================
+
+/**
+ * Renders the list of audit findings or a placeholder if the workspace is empty.
+ */
 export default function AuditResults({ findings, isLoading = false }: AuditResultsProps) {
   
+  // Render empty state placeholder
   if (findings.length === 0 && !isLoading) {
     return (
       <div className="h-full border border-dashed border-border/30 rounded-2xl bg-card/10 p-12 text-center flex flex-col items-center justify-center gap-6 backdrop-blur-sm min-h-[400px]">
@@ -33,8 +70,9 @@ export default function AuditResults({ findings, isLoading = false }: AuditResul
     );
   }
 
+  // Render findings list with animated transitions
   return (
-    <div className="space-y-6 h-full flex flex-col">
+    <div className="space-y-6">
       <AnimatePresence>
         {findings.map((finding) => (
           <FindingCard key={finding.id} finding={finding} isLoading={isLoading} />
@@ -44,16 +82,23 @@ export default function AuditResults({ findings, isLoading = false }: AuditResul
   );
 }
 
-function FindingCard({ finding, isLoading }: { finding: AuditFinding, isLoading: boolean }) {
+// ============================================================================
+// Sub-components
+// ============================================================================
+
+/**
+ * Renders an individual security finding card containing analysis and remediated code.
+ */
+function FindingCard({ finding, isLoading }: FindingCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -15 }}
       transition={{ duration: 0.35 }}
-      className="group border border-border/30 rounded-2xl bg-card/40 hover:border-border/50 transition-colors backdrop-blur-sm overflow-hidden flex flex-col h-full min-h-[600px]"
+      className="group border border-border/30 rounded-2xl bg-card/40 hover:border-border/50 transition-colors backdrop-blur-sm overflow-hidden flex flex-col"
     >
-      {/* HEADER DE LA TARJETA */}
+      {/* Card Header: Vulnerability Title and Severity Badge */}
       <div className="p-6 flex flex-col md:flex-row md:items-center gap-6 justify-between border-b border-border/20 bg-background/50">
         <div className="flex gap-4 items-center">
           <div
@@ -74,69 +119,70 @@ function FindingCard({ finding, isLoading }: { finding: AuditFinding, isLoading:
         </div>
       </div>
 
-      {/* CONTENEDOR PRINCIPAL */}
-      <div className="p-6 flex flex-col gap-6 flex-1">
+      {/* Main Content Payload */}
+      <div className="p-6 flex flex-col gap-8">
         
-        {/* DESCRIPCIÓN DEL PROBLEMA */}
+        {/* Analysis & Recommendation Text Container */}
         <div className="space-y-3">
           <h5 className="font-semibold text-sm text-accent flex items-center gap-2">
             <Shield className="w-4 h-4" />
-            Analysis Details
+            Analysis & Remediation
           </h5>
-          <div className="prose prose-base prose-invert max-w-none text-muted-foreground leading-relaxed bg-background/30 p-5 rounded-xl border border-border/30">
+          <div className="prose prose-base prose-invert max-w-none text-muted-foreground leading-relaxed bg-background/30 p-5 rounded-xl border border-border/30 text-[16px]">
+            {/* Detailed explanation of the vulnerability */}
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {finding.description || "No analysis details provided."}
+            </ReactMarkdown>
+            
+            {/* Step-by-step remediation instructions */}
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {finding.recommendation}
             </ReactMarkdown>
           </div>
         </div>
 
-        {/* SOLUCIÓN ARMONIZADA (Estilo Editor Limpio) */}
-        <div className="space-y-3 flex-1 flex flex-col">
+        {/* Mock IDE Container: Secure Code Output */}
+        <div className="space-y-3">
           <h5 className="font-semibold text-sm text-green-400 flex items-center gap-2">
             <Zap className="w-4 h-4" />
-            Remediated Code
+            Secure Code
           </h5>
           
-          {/* Contenedor tipo VS Code (Sin botones Mac, fondo coherente) */}
-          <div className="rounded-xl overflow-hidden border border-border/30 shadow-lg bg-[#0d0d12] flex flex-col flex-1 relative">
+          {/* IDE Layout constraint: max-h-[450px] enables internal vertical scrolling */}
+          <div className="rounded-xl border border-border/30 shadow-lg bg-[#0d0d12] flex flex-col relative max-h-[450px]">
             
-            {/* Cabecera minimalista (Pestaña de archivo) */}
-            <div className="bg-[#1a1a24]/80 px-4 py-2.5 flex items-center justify-between border-b border-white/5">
+            {/* Minimalist Tab Header */}
+            <div className="bg-[#1a1a24]/80 px-4 py-2.5 flex items-center justify-between border-b border-white/5 shrink-0">
               <div className="flex items-center gap-2 text-muted-foreground/80">
                 <FileCode className="w-4 h-4" />
                 <span className="text-sm text-muted-foreground font-semibold">Fixed code</span>
               </div>
             </div>
 
-            {/* Área de código y texto */}
-            <div className="p-6 overflow-auto custom-scrollbar flex-1 relative min-h-[300px]">
+            {/* Scrollable Code Area */}
+            <div className="p-6 overflow-y-auto custom-scrollbar">
               {isLoading ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-accent/50 gap-3">
+                <div className="flex flex-col items-center justify-center text-accent/50 gap-3 py-10">
                   <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity }}>
                     <Zap className="w-5 h-5" />
                   </motion.div>
-                  <span className="text-sm font-mono">Synthesizing secure code...</span>
+                  <span className="text-base font-mono">Synthesizing secure code...</span>
                 </div>
               ) : (
-                /* AQUÍ ESTÁ EL CAMBIO DE FUENTE: prose-base y text-[15px] para igualar al editor */
-                <div className="prose prose-base prose-invert max-w-none prose-pre:bg-transparent prose-pre:p-0 prose-pre:m-0 text-foreground text-[15px] leading-relaxed">
+                <div className="prose prose-base prose-invert max-w-none prose-pre:bg-transparent prose-pre:p-0 prose-pre:m-0 font-mono text-green-300/70 text-[15px] leading-relaxed">
                   
-                  {/* Texto de la recomendación (Ahora en color normal, no todo verde) */}
-                  <div className="text-muted-foreground mb-6 pb-6 border-b border-white/5 font-sans">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {finding.recommendation || "*No recommendation provided.*"}
-                    </ReactMarkdown>
-                  </div>
-
-                  {/* Código de solución (Mantenemos la fuente mono para el código) */}
-                  {finding.solutionCode && finding.solutionCode !== "// Gemini no proporcionó código de solución." && (
-                    <div className="font-mono text-green-300/90 text-[15px]">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {finding.solutionCode.includes('```') 
-                          ? finding.solutionCode 
-                          : `\`\`\`python\n${finding.solutionCode}\n\`\`\``}
-                      </ReactMarkdown>
-                    </div>
+                  {/* Pure HTML Code Rendering */}
+                  {finding.solutionCode && finding.solutionCode !== "// Gemini no proporcionó código de solución." ? (
+                    <pre className="whitespace-pre-wrap font-mono text-[16px] text-green-300/90 leading-relaxed bg-transparent p-0 m-0 border-none">
+                      <code>
+                        {/* Strip residual Markdown formatting inadvertently injected by the AI */}
+                        {finding.solutionCode.replace(/```python\n?/g, '').replace(/```\n?/g, '').trim()}
+                      </code>
+                    </pre>
+                  ) : (
+                    <span className="text-muted-foreground/50 opacity-50 italic">
+                      // No replacement code generated.
+                    </span>
                   )}
 
                 </div>

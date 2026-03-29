@@ -63,7 +63,7 @@ export default function Home() {
 
     try {
       // Execute API call to the FastAPI backend
-      const response = await fetch("http://localhost:8000/api/audit", {
+      const response = await fetch("https://code-guard-ai.onrender.com", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

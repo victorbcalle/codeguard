@@ -30,7 +30,7 @@ app = FastAPI(
 # CRITICAL: This allows the React frontend to communicate with this backend.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TODO: In strict production, replace "*" with your Vercel URL
+    allow_origins=["https://codeguard-beta.vercel.app/"],  # TODO: In strict production, replace "*" with your Vercel URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

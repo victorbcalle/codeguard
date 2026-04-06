@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="frontend/public/favicon.png" alt="CodeGuard AI Logo" width="120">
+  <img src="frontend/public/favicon_git.png" alt="CodeGuard AI Logo" width="120">
 
   <h1>CodeGuard AI</h1>
   <p><b>Next-Generation, AI-Powered Static Code Security Auditing</b></p>
